@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICCOP Lookup</title>
+<style>
+  :root{
+    --navy:#0f1f38;
+    --navy-deep:#0a1626;
+    --navy-mid:#16294a;
+    --gold:#c8a45c;
+    --gold-bright:#e2bd72;
+    --cream:#f6f1e6;
+    --cream-dim:#d8d0bd;
+    --line:#2a3d63;
+    --ok:#5fae7c;
+    --warn:#d99a4e;
+    --bad:#c2664f;
+    --font-display: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono: 'SFMono-Regular', Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top left, #17274a 0%, var(--navy-deep) 55%),
+      var(--navy-deep);
+    color:var(--cream);
+    font-family:var(--font-body);
+    min-height:100vh;
+    padding-bottom:60px;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px;}
+
+  header{
+    padding:44px 24px 28px;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(200,164,92,0.06), transparent);
+  }
+  header .inner{max-width:1040px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+  .brand-mark{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:44px;height:44px;border:1px solid var(--gold);border-radius:3px;
+    font-family:var(--font-display); color:var(--gold); font-size:20px; font-style:italic;
+    margin-bottom:14px;
+  }
+  h1{
+    font-family:var(--font-display);
+    font-weight:400;
+    font-size:38px;
+    letter-spacing:0.3px;
+    margin:0 0 6px;
+    color:var(--cream);
+  }
+  h1 em{color:var(--gold-bright); font-style:italic;}
+  .subtitle{
+    color:var(--cream-dim);
+    font-size:14px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    margin:0;
+  }
+  .meta-tag{
+    font-size:12px; color:var(--gold); border:1px solid var(--line);
+    padding:6px 12px; border-radius:20px; white-space:nowrap;
+    font-family:var(--font-mono); letter-spacing:0.5px;
+  }
+
+  main{padding-top:34px;}
+
+  .search-panel{
+    background:var(--navy-mid);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:26px;
+    display:grid;
+    grid-template-columns:1fr 1fr auto;
+    gap:16px;
+    align-items:end;
+  }
+  @media (max-width:700px){ .search-panel{grid-template-columns:1fr;} }
+
+  .field label{
+    display:block; font-size:11px; text-transform:uppercase; letter-spacing:1px;
+    color:var(--gold); margin-bottom:8px; font-weight:600;
+  }
+  .field{position:relative;}
+  .field input{
+    width:100%; padding:12px 14px; border-radius:5px; border:1px solid var(--line);
+    background:var(--navy-deep); color:var(--cream); font-size:15px; font-family:var(--font-body);
+    outline:none;
+  }
+  .field input:focus{border-color:var(--gold);}
+  .field input::placeholder{color:#6d7a99;}
+
+  .suggestions{
+    position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:20;
+    background:var(--navy-deep); border:1px solid var(--line); border-radius:6px;
+    max-height:280px; overflow-y:auto; display:none; box-shadow:0 12px 28px rgba(0,0,0,0.5);
+  }
+  .suggestions.open{display:block;}
+  .suggestion-item{
+    padding:10px 14px; cursor:pointer; font-size:14px; border-bottom:1px solid var(--line);
+  }
+  .suggestion-item:last-child{border-bottom:none;}
+  .suggestion-item:hover, .suggestion-item.active{background:var(--navy-mid);}
+  .suggestion-item .s-main{color:var(--cream);}
+  .suggestion-item .s-sub{color:var(--cream-dim); font-size:12px; margin-top:2px;}
+
+  .btn-lookup{
+    padding:12px 26px; border-radius:5px; border:1px solid var(--gold);
+    background:var(--gold); color:var(--navy-deep); font-weight:700; font-size:14px;
+    cursor:pointer; letter-spacing:0.4px; height:47px;
+  }
+  .btn-lookup:hover{background:var(--gold-bright);}
+  .btn-lookup:disabled{opacity:0.4; cursor:not-allowed;}
+
+  .empty-state{
+    margin-top:60px; text-align:center; color:var(--cream-dim);
+  }
+  .empty-state .glyph{font-family:var(--font-display); font-size:52px; color:var(--line); font-style:italic; margin-bottom:10px;}
+  .empty-state p{font-size:14px; max-width:420px; margin:8px auto 0;}
+
+  .results{margin-top:36px; display:none;}
+  .results.open{display:block;}
+
+  .verdict-banner{
+    border-radius:8px; padding:22px 26px; margin-bottom:26px;
+    border:1px solid; display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  }
+  .verdict-banner .v-icon{
+    width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:20px; font-weight:700; flex-shrink:0;
+  }
+  .verdict-banner .v-text{flex:1; min-width:200px;}
+  .verdict-banner .v-title{font-size:18px; font-weight:700; margin-bottom:4px;}
+  .verdict-banner .v-sub{font-size:13px; opacity:0.85;}
+  .v-atrisk{background:rgba(95,174,124,0.10); border-color:var(--ok);}
+  .v-atrisk .v-icon{background:var(--ok); color:var(--navy-deep);}
+  .v-atrisk .v-title{color:var(--ok);}
+  .v-partial{background:rgba(217,154,78,0.10); border-color:var(--warn);}
+  .v-partial .v-icon{background:var(--warn); color:var(--navy-deep);}
+  .v-partial .v-title{color:var(--warn);}
+  .v-notatrisk{background:rgba(194,102,79,0.10); border-color:var(--bad);}
+  .v-notatrisk .v-icon{background:var(--bad); color:var(--navy-deep);}
+  .v-notatrisk .v-title{color:var(--bad);}
+  .v-unclear{background:rgba(200,164,92,0.08); border-color:var(--gold);}
+  .v-unclear .v-icon{background:var(--gold); color:var(--navy-deep);}
+  .v-unclear .v-title{color:var(--gold-bright);}
+
+  .section{margin-bottom:30px;}
+  .section-head{
+    display:flex; align-items:center; gap:10px; margin-bottom:14px;
+  }
+  .section-head .num{
+    font-family:var(--font-display); font-style:italic; color:var(--gold); font-size:20px;
+  }
+  .section-head h2{
+    font-size:13px; text-transform:uppercase; letter-spacing:1.4px; color:var(--cream-dim);
+    margin:0; font-weight:600;
+  }
+  .section-head .count-pill{
+    font-family:var(--font-mono); font-size:11px; color:var(--navy-deep); background:var(--gold);
+    padding:2px 9px; border-radius:10px; margin-left:auto;
+  }
+
+  .card{
+    background:var(--navy-mid); border:1px solid var(--line); border-radius:7px;
+    padding:20px 22px; margin-bottom:12px;
+  }
+  .card-title{font-size:16px; font-weight:600; color:var(--cream); margin-bottom:4px;}
+  .card-sub{font-size:12px; color:var(--gold); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:14px;}
+  .kv-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:14px 20px;}
+  .kv{border-left:2px solid var(--line); padding-left:10px;}
+  .kv .k{font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:var(--cream-dim); margin-bottom:3px;}
+  .kv .v{font-size:14px; color:var(--cream); line-height:1.4;}
+  .kv .v.mono{font-family:var(--font-mono); font-size:13px;}
+  .kv.highlight{border-left-color:var(--gold);}
+  .kv.highlight .v{color:var(--gold-bright); font-weight:600;}
+
+  .instr-box{
+    margin-top:14px; padding:12px 14px; background:var(--navy-deep); border-radius:5px;
+    font-size:13px; color:var(--cream-dim); border-left:2px solid var(--gold); line-height:1.5;
+  }
+
+  .drug-row{
+    display:flex; flex-wrap:wrap; gap:0 24px; align-items:baseline;
+    padding:14px 0; border-bottom:1px solid var(--line);
+  }
+  .drug-row:last-child{border-bottom:none;}
+  .drug-row .list-badge{
+    font-family:var(--font-mono); font-size:11px; background:var(--navy-deep); color:var(--gold);
+    padding:3px 9px; border-radius:4px; border:1px solid var(--line); margin-right:12px;
+    flex-shrink:0;
+  }
+  .drug-row .list-badge.match{background:var(--gold); color:var(--navy-deep); border-color:var(--gold); font-weight:700;}
+  .drug-row .d-main{flex:1; min-width:220px;}
+  .drug-row .d-generic{font-size:14px; color:var(--cream); font-weight:600;}
+  .drug-row .d-trade{font-size:13px; color:var(--cream-dim);}
+  .drug-row .d-codes{font-family:var(--font-mono); font-size:11px; color:var(--cream-dim); margin-top:4px;}
+  .drug-row .d-notes{font-size:12px; color:var(--warn); margin-top:4px; max-width:100%;}
+
+  .verbiage-box{
+    background:var(--navy-mid); border:1px solid var(--gold); border-radius:7px;
+    padding:20px 22px;
+  }
+  .verbiage-field{margin-bottom:14px;}
+  .verbiage-field:last-child{margin-bottom:0;}
+  .verbiage-field .vf-label{
+    font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:var(--gold);
+    margin-bottom:6px; display:flex; align-items:center; gap:8px;
+  }
+  .verbiage-field .vf-text{
+    background:var(--navy-deep); border:1px solid var(--line); border-radius:5px;
+    padding:12px 14px; font-size:13px; color:var(--cream); line-height:1.6; white-space:pre-wrap;
+    font-family:var(--font-body);
+  }
+  .copy-btn{
+    font-size:10px; padding:2px 10px; border-radius:10px; border:1px solid var(--line);
+    background:transparent; color:var(--cream-dim); cursor:pointer; letter-spacing:0.5px;
+  }
+  .copy-btn:hover{border-color:var(--gold); color:var(--gold);}
+  .copy-btn.copied{border-color:var(--ok); color:var(--ok);}
+
+  .noncov-flag{
+    background:rgba(194,102,79,0.12); border:1px solid var(--bad); border-radius:7px;
+    padding:16px 20px; margin-bottom:12px;
+  }
+  .noncov-flag .nc-title{color:var(--bad); font-weight:700; font-size:14px; margin-bottom:6px;}
+  .noncov-flag .nc-alt{color:var(--ok); font-weight:600;}
+
+  footer{
+    text-align:center; padding:40px 24px 10px; color:var(--line); font-size:11px;
+    letter-spacing:0.5px;
+  }
+
+  ::-webkit-scrollbar{width:8px; height:8px;}
+  ::-webkit-scrollbar-track{background:var(--navy-deep);}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <div>
+      <div class="brand-mark">I</div>
+      <h1>ICCOP <em>Lookup</em></h1>
+      <p class="subtitle">Injectable &amp; Chemotherapy Carveout Program &middot; OGA Job Aid</p>
+    </div>
+    <div class="meta-tag" id="metaTag">source: —</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="search-panel">
+    <div class="field">
+      <label for="facilityInput">Care Facility (code or name)</label>
+      <input type="text" id="facilityInput" placeholder="e.g. 10246 or Blue Zones Health" autocomplete="off">
+      <div class="suggestions" id="facilitySuggest"></div>
+    </div>
+    <div class="field">
+      <label for="drugInput">Drug (generic, trade name, or HCPC)</label>
+      <input type="text" id="drugInput" placeholder="e.g. Wegovy, semaglutide, J3490" autocomplete="off">
+      <div class="suggestions" id="drugSuggest"></div>
+    </div>
+    <button class="btn-lookup" id="lookupBtn">Look Up</button>
+  </div>
+
+  <div class="empty-state" id="emptyState">
+    <div class="glyph">§</div>
+    <p>Enter a facility code and a drug name, then Look Up. You'll get the at-risk verdict, the matching drug-list rows, and ready-to-paste verbiage.</p>
+  </div>
+
+  <div class="results" id="results"></div>
+</main>
+
+<footer>ICCOP Lookup &middot; internal reference tool &middot; verify against the live Job Aid before final determinations</footer>
+
+<script src="data.js"></script>
+<script>
+const DATA = window.ICCOP_DATA;
+document.getElementById('metaTag').textContent = 'source: ' + DATA.meta.source;
+
+// ---------- helpers ----------
+function norm(s){ return (s||'').toString().toLowerCase().trim(); }
+
+function uniqFacilities(){
+  // group facility rows by facilityNum so autocomplete shows one entry per facility
+  const map = new Map();
+  DATA.facilities.forEach(f=>{
+    const key = f.facilityNum + '|' + f.groupName;
+    if(!map.has(key)) map.set(key, {facilityNum:f.facilityNum, groupName:f.groupName, cirrusName:f.cirrusName});
+  });
+  return Array.from(map.values());
+}
+const FACILITY_INDEX = uniqFacilities();
+
+function uniqDrugs(){
+  const map = new Map();
+  DATA.drugs.forEach(d=>{
+    const key = norm(d.generic) + '|' + norm(d.trade);
+    if(!map.has(key)) map.set(key, {generic:d.generic, trade:d.trade, hcpc:d.hcpc});
+  });
+  return Array.from(map.values());
+}
+const DRUG_INDEX = uniqDrugs();
+
+// list code matcher: does a facility's "List Assigned" string cover this list code?
+function facilityCoversList(listAssigned, listCode){
+  if(!listAssigned) return false;
+  const la = listAssigned.toUpperCase();
+  if(la.includes('ALL ICCOP LISTS') && ['100','200','400','500','502','600'].includes(listCode)) return true;
+  const re = new RegExp('(^|[^0-9])' + listCode + '([^0-9]|$)');
+  return re.test(listAssigned);
+}
+
+function authIsOptum(s){
+  s = norm(s);
+  return s.includes('optumrx') || s.includes('optum rx');
+}
+function fulfillIsOptum(s){
+  s = norm(s);
+  return s.includes('optumrx') || s.includes('optum rx');
+}
+
+// ---------- autocomplete ----------
+function setupAutocomplete(inputEl, suggestEl, items, renderMain, renderSub, onPick){
+  let activeIdx = -1;
+  let currentMatches = [];
+
+  function close(){ suggestEl.classList.remove('open'); suggestEl.innerHTML=''; activeIdx=-1; }
+
+  inputEl.addEventListener('input', ()=>{
+    const q = norm(inputEl.value);
+    if(q.length < 1){ close(); return; }
+    currentMatches = items.filter(it=>{
+      return norm(renderMain(it)).includes(q) || norm(renderSub(it)).includes(q);
+    }).slice(0, 12);
+    if(currentMatches.length === 0){ close(); return; }
+    suggestEl.innerHTML = currentMatches.map((it,i)=>
+      `<div class="suggestion-item" data-idx="${i}">
+        <div class="s-main">${renderMain(it)}</div>
+        <div class="s-sub">${renderSub(it)}</div>
+      </div>`
+    ).join('');
+    suggestEl.classList.add('open');
+    activeIdx = -1;
+  });
+
+  suggestEl.addEventListener('mousedown', (e)=>{
+    const item = e.target.closest('.suggestion-item');
+    if(!item) return;
+    const idx = parseInt(item.dataset.idx);
+    onPick(currentMatches[idx]);
+    close();
+  });
+
+  inputEl.addEventListener('keydown', (e)=>{
+    const nodes = suggestEl.querySelectorAll('.suggestion-item');
+    if(e.key === 'ArrowDown'){
+      e.preventDefault();
+      activeIdx = Math.min(activeIdx+1, nodes.length-1);
+      nodes.forEach((n,i)=>n.classList.toggle('active', i===activeIdx));
+    } else if(e.key === 'ArrowUp'){
+      e.preventDefault();
+      activeIdx = Math.max(activeIdx-1, 0);
+      nodes.forEach((n,i)=>n.classList.toggle('active', i===activeIdx));
+    } else if(e.key === 'Enter'){
+      if(activeIdx >= 0 && currentMatches[activeIdx]){
+        onPick(currentMatches[activeIdx]);
+        close();
+      }
+    } else if(e.key === 'Escape'){
+      close();
+    }
+  });
+
+  document.addEventListener('click', (e)=>{
+    if(!suggestEl.contains(e.target) && e.target !== inputEl) close();
+  });
+}
+
+setupAutocomplete(
+  document.getElementById('facilityInput'),
+  document.getElementById('facilitySuggest'),
+  FACILITY_INDEX,
+  it=>it.groupName,
+  it=>`${it.facilityNum} — ${it.cirrusName||''}`,
+  it=>{ document.getElementById('facilityInput').value = it.facilityNum + ' — ' + it.groupName; }
+);
+
+setupAutocomplete(
+  document.getElementById('drugInput'),
+  document.getElementById('drugSuggest'),
+  DRUG_INDEX,
+  it=>it.generic,
+  it=>`${it.trade||''} ${it.hcpc?('· '+it.hcpc):''}`,
+  it=>{ document.getElementById('drugInput').value = it.generic; }
+);
+
+// ---------- lookup logic ----------
+function findFacilityRows(query){
+  const q = norm(query);
+  if(!q) return [];
+  // if query has a leading number token like "10246 — Blue Zones", strip to code
+  const codeMatch = q.match(/^(\d+)/);
+  let rows = [];
+  if(codeMatch){
+    const code = codeMatch[1];
+    rows = DATA.facilities.filter(f=> norm(f.facilityNum) === code || norm(f.facilityNumRxClaim) === code);
+  }
+  if(rows.length === 0){
+    rows = DATA.facilities.filter(f=> norm(f.groupName).includes(q) || norm(f.facilityNum).includes(q) || norm(f.facilityNumRxClaim).includes(q) || norm(f.cirrusName).includes(q));
+  }
+  return rows;
+}
+
+function findDrugRows(query){
+  const q = norm(query);
+  if(!q) return [];
+  return DATA.drugs.filter(d=>
+    norm(d.generic).includes(q) || norm(d.trade).includes(q) || norm(d.hcpc) === q
+  );
+}
+
+function findNonCovered(query){
+  const q = norm(query);
+  if(!q) return [];
+  return DATA.noncovered.filter(d=> norm(d.drugName).includes(q) || norm(d.genericName).includes(q));
+}
+
+function findCalpers(query){
+  const q = norm(query);
+  if(!q) return [];
+  return DATA.calpers.filter(d=> norm(d.trade).includes(q) || norm(d.generic).includes(q));
+}
+
+function escapeHtml(s){
+  return (s||'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function copyText(btn, text){
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent = 'Copied';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+function runLookup(){
+  const facQuery = document.getElementById('facilityInput').value.trim();
+  const drugQuery = document.getElementById('drugInput').value.trim();
+  const resultsEl = document.getElementById('results');
+  const emptyEl = document.getElementById('emptyState');
+
+  if(!facQuery && !drugQuery){
+    resultsEl.classList.remove('open');
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  resultsEl.classList.add('open');
+
+  const facRows = facQuery ? findFacilityRows(facQuery) : [];
+  const drugRows = drugQuery ? findDrugRows(drugQuery) : [];
+  const nonCovRows = drugQuery ? findNonCovered(drugQuery) : [];
+  const calpersRows = drugQuery ? findCalpers(drugQuery) : [];
+
+  let html = '';
+
+  // ---- Verdict banner (only if both facility & drug given) ----
+  if(facQuery && drugQuery){
+    let matchedList = null; // {facilityRow, drugRow}
+    outer:
+    for(const fr of facRows){
+      for(const dr of drugRows){
+        if(facilityCoversList(fr.listAssigned, dr.list)){
+          matchedList = {fr, dr};
+          break outer;
+        }
+      }
+    }
+
+    let verdictClass, verdictTitle, verdictSub, icon;
+    if(calpersRows.length > 0){
+      verdictClass = 'v-notatrisk'; icon='✕';
+      verdictTitle = 'CalPERS Pharmacy Benefit — OptumRx Not At Risk';
+      verdictSub = 'Effective 1/1/2026, OptumRx does not review or supply. CVS Caremark manages CalPERS pharmacy benefit self-injectables.';
+    } else if(matchedList){
+      const { fr, dr } = matchedList;
+      const authOk = authIsOptum(fr.authDelegation);
+      const fulfillOk = fulfillIsOptum(fr.fulfillment);
+      if(authOk && fulfillOk){
+        verdictClass='v-atrisk'; icon='✓';
+        verdictTitle = 'OptumRx At Risk — Review & Supply';
+        verdictSub = `${escapeHtml(dr.generic||dr.trade)} is on List ${dr.list} (${dr.listName}), which ${escapeHtml(fr.groupName)} has assigned to OptumRx for both authorization and fulfillment.`;
+      } else if(!authOk && fulfillOk){
+        verdictClass='v-partial'; icon='!';
+        verdictTitle = 'OptumRx Not At Risk for Review — At Risk for Supply';
+        verdictSub = `Medical group (${escapeHtml(fr.authDelegation)}) reviews; OptumRx supplies via ${escapeHtml(fr.fulfillment)}.`;
+      } else if(authOk && !fulfillOk){
+        verdictClass='v-partial'; icon='!';
+        verdictTitle = 'OptumRx At Risk for Review Only';
+        verdictSub = `OptumRx reviews; fulfillment goes through ${escapeHtml(fr.fulfillment)}.`;
+      } else {
+        verdictClass='v-notatrisk'; icon='✕';
+        verdictTitle = 'OptumRx Not At Risk — Medical Group Handles Review & Supply';
+        verdictSub = `${escapeHtml(fr.authDelegation)} reviews and ${escapeHtml(fr.fulfillment)} fulfills.`;
+      }
+    } else if(nonCovRows.length > 0){
+      verdictClass='v-notatrisk'; icon='✕';
+      verdictTitle = 'Non-Covered Injectable — Not on ICCOP';
+      const alt = nonCovRows[0].alternative;
+      verdictSub = alt ? `Preferred covered alternative: ${escapeHtml(alt)}` : 'No preferred alternative listed.';
+    } else if(drugRows.length > 0 && facRows.length > 0){
+      verdictClass='v-notatrisk'; icon='✕';
+      verdictTitle = 'No Matching List for This Facility';
+      verdictSub = `${escapeHtml(drugRows[0].generic||drugRows[0].trade)} is on List ${drugRows[0].list} elsewhere, but this facility isn't assigned that list. Not at risk for this facility.`;
+    } else if(drugRows.length === 0 && nonCovRows.length === 0 && calpersRows.length === 0){
+      verdictClass='v-unclear'; icon='?';
+      verdictTitle = 'Drug Not Found on Any List';
+      verdictSub = 'Not on a standard list, a custom list, or Non-covered Injectables. Reach out to OptumRx Clinical_Pharmacist_Inquiry before denying or canceling.';
+    } else {
+      verdictClass='v-unclear'; icon='?';
+      verdictTitle = 'Facility Not Found';
+      verdictSub = 'Check the facility code and try again.';
+    }
+
+    html += `<div class="verdict-banner ${verdictClass}">
+      <div class="v-icon">${icon}</div>
+      <div class="v-text">
+        <div class="v-title">${verdictTitle}</div>
+        <div class="v-sub">${verdictSub}</div>
+      </div>
+    </div>`;
+  }
+
+  // ---- Facility section ----
+  if(facQuery){
+    html += `<div class="section">
+      <div class="section-head"><span class="num">I.</span><h2>Facility</h2><span class="count-pill">${facRows.length} row${facRows.length===1?'':'s'}</span></div>`;
+    if(facRows.length === 0){
+      html += `<div class="card">No facility matched "${escapeHtml(facQuery)}".</div>`;
+    } else {
+      const byFac = new Map();
+      facRows.forEach(f=>{
+        if(!byFac.has(f.facilityNum)) byFac.set(f.facilityNum, []);
+        byFac.get(f.facilityNum).push(f);
+      });
+      byFac.forEach((rows, facNum)=>{
+        const head = rows[0];
+        html += `<div class="card">
+          <div class="card-title">${escapeHtml(head.groupName)}</div>
+          <div class="card-sub">Facility ${escapeHtml(facNum)} ${head.facilityNumRxClaim?('('+escapeHtml(head.facilityNumRxClaim)+')'):''} &middot; ${escapeHtml(head.cirrusName||'')} &middot; ${escapeHtml(head.source)}</div>`;
+        rows.forEach(r=>{
+          html += `<div class="instr-box" style="margin-bottom:8px;">
+            <div class="kv-grid">
+              <div class="kv highlight"><div class="k">List Assigned</div><div class="v">${escapeHtml(r.listAssigned)}</div></div>
+              <div class="kv"><div class="k">Auth Delegation</div><div class="v">${escapeHtml(r.authDelegation)}</div></div>
+              <div class="kv"><div class="k">Fulfillment</div><div class="v">${escapeHtml(r.fulfillment)}</div></div>
+            </div>
+            ${r.instructions ? `<div style="margin-top:10px;">${escapeHtml(r.instructions)}</div>` : ''}
+            ${r.notes ? `<div style="margin-top:6px; color:var(--gold); font-size:12px;">${escapeHtml(r.notes)}</div>` : ''}
+          </div>`;
+        });
+        html += `</div>`;
+      });
+    }
+    html += `</div>`;
+  }
+
+  // ---- Drug section ----
+  if(drugQuery){
+    html += `<div class="section">
+      <div class="section-head"><span class="num">II.</span><h2>Drug List Matches</h2><span class="count-pill">${drugRows.length} row${drugRows.length===1?'':'s'}</span></div>`;
+    if(drugRows.length === 0 && nonCovRows.length === 0 && calpersRows.length === 0){
+      html += `<div class="card">No entry found for "${escapeHtml(drugQuery)}" on any ICCOP list, custom list, Non-covered Injectables, or CalPERS list.</div>`;
+    } else {
+      if(drugRows.length > 0){
+        html += `<div class="card">`;
+        drugRows.forEach(d=>{
+          const isMatch = facRows.some(fr => facilityCoversList(fr.listAssigned, d.list));
+          html += `<div class="drug-row">
+            <span class="list-badge ${isMatch?'match':''}">${escapeHtml(d.list)}</span>
+            <div class="d-main">
+              <div class="d-generic">${escapeHtml(d.generic || '—')}</div>
+              <div class="d-trade">${escapeHtml(d.trade || '')}</div>
+              <div class="d-codes">HCPC ${escapeHtml(d.hcpc||'—')} ${d.gpi ? ('&middot; GPI '+escapeHtml(d.gpi)) : ''} ${d.ndc ? ('&middot; NDC '+escapeHtml(d.ndc)) : ''}</div>
+              ${d.notes ? `<div class="d-notes">${escapeHtml(d.notes)}</div>` : ''}
+            </div>
+            <div style="font-size:11px; color:var(--cream-dim); max-width:160px; text-align:right;">${escapeHtml(d.listName)}</div>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+      if(calpersRows.length > 0){
+        html += `<div class="card" style="border-color:var(--bad);">
+          <div class="card-title" style="color:var(--bad);">CalPERS Pharmacy Benefit Only</div>
+          <div class="card-sub">Auto-cancel under medical benefit — pharmacy benefit only, effective 1/1/2026</div>`;
+        calpersRows.forEach(c=>{
+          html += `<div class="drug-row">
+            <div class="d-main">
+              <div class="d-generic">${escapeHtml(c.trade)}</div>
+              <div class="d-trade">${escapeHtml(c.generic)}</div>
+              <div class="d-codes">GPI-12 ${escapeHtml(c.gpi)}</div>
+            </div>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+      if(nonCovRows.length > 0){
+        nonCovRows.forEach(nc=>{
+          html += `<div class="noncov-flag">
+            <div class="nc-title">Non-Covered: ${escapeHtml(nc.drugName)} ${nc.exclusionType?('— '+escapeHtml(nc.exclusionType)):''}</div>
+            <div style="font-size:13px; color:var(--cream-dim); margin-bottom:6px;">${escapeHtml(nc.therapeuticUse||'')} ${nc.brandGeneric?('&middot; '+escapeHtml(nc.brandGeneric)):''}</div>
+            ${nc.alternative ? `<div>Preferred alternative: <span class="nc-alt">${escapeHtml(nc.alternative)}</span></div>` : ''}
+            ${nc.notes ? `<div style="font-size:12px; color:var(--cream-dim); margin-top:6px;">${escapeHtml(nc.notes)}</div>` : ''}
+          </div>`;
+        });
+      }
+    }
+    html += `</div>`;
+  }
+
+  // ---- Verbiage section ----
+  if(facQuery && drugQuery){
+    let vb = null;
+    const matched = facRows.some(fr => drugRows.some(dr => facilityCoversList(fr.listAssigned, dr.list)));
+    if(calpersRows.length > 0){
+      vb = DATA.verbiage.find(v=>v.code==='calpers');
+    } else if(matched){
+      const fr = facRows.find(fr => drugRows.some(dr => facilityCoversList(fr.listAssigned, dr.list)));
+      const authOk = authIsOptum(fr.authDelegation);
+      const fulfillOk = fulfillIsOptum(fr.fulfillment);
+      if(authOk && fulfillOk) vb = DATA.verbiage.find(v=>v.code==='at_risk');
+      else if(fulfillOk) vb = DATA.verbiage.find(v=>v.code==='not_at_risk_supply_only');
+      else vb = DATA.verbiage.find(v=>v.code==='not_at_risk_no_supply');
+    } else if(nonCovRows.length > 0){
+      vb = DATA.verbiage.find(v=>v.code==='not_on_iccop');
+    }
+
+    if(vb){
+      html += `<div class="section">
+        <div class="section-head"><span class="num">III.</span><h2>Verbiage</h2></div>
+        <div class="verbiage-box">
+          ${vb.paperclipSubject ? `
+          <div class="verbiage-field">
+            <div class="vf-label">Paperclip Subject <button class="copy-btn" data-copy="${escapeHtml(vb.paperclipSubject)}">Copy</button></div>
+            <div class="vf-text">${escapeHtml(vb.paperclipSubject)}</div>
+          </div>` : ''}
+          ${vb.note ? `
+          <div class="verbiage-field">
+            <div class="vf-label">Note <button class="copy-btn" data-copy="${escapeHtml(vb.note)}">Copy</button></div>
+            <div class="vf-text">${escapeHtml(vb.note)}</div>
+          </div>` : ''}
+          ${vb.cancelComment ? `
+          <div class="verbiage-field">
+            <div class="vf-label">Cancel Comment ${vb.cancelReason ? ('— '+escapeHtml(vb.cancelReason)) : ''} <button class="copy-btn" data-copy="${escapeHtml(vb.cancelComment)}">Copy</button></div>
+            <div class="vf-text">${escapeHtml(vb.cancelComment)}</div>
+          </div>` : ''}
+        </div>
+      </div>`;
+    }
+  }
+
+  resultsEl.innerHTML = html;
+  resultsEl.querySelectorAll('.copy-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> copyText(btn, btn.dataset.copy));
+  });
+}
+
+document.getElementById('lookupBtn').addEventListener('click', runLookup);
+[document.getElementById('facilityInput'), document.getElementById('drugInput')].forEach(el=>{
+  el.addEventListener('keydown', e=>{
+    if(e.key === 'Enter' && !document.querySelector('.suggestions.open .suggestion-item.active')){
+      runLookup();
+    }
+  });
+});
+</script>
+</body>
+</html>
