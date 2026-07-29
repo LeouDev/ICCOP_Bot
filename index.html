@@ -799,24 +799,24 @@ function runLookup(){
     }
 
     if(vb){
+      const paperclip = vb.paperclipSubject || 'N/A';
+      const note = vb.note || 'N/A';
+      const comment = vb.cancelComment || 'N/A';
       html += `<div class="section">
         <div class="section-head"><span class="num">III.</span><h2>Verbiage</h2></div>
         <div class="verbiage-box">
-          ${vb.paperclipSubject ? `
           <div class="verbiage-field">
-            <div class="vf-label">Paperclip Subject <button class="copy-btn" data-copy="${escapeHtml(vb.paperclipSubject)}">Copy</button></div>
-            <div class="vf-text">${escapeHtml(vb.paperclipSubject)}</div>
-          </div>` : ''}
-          ${vb.note ? `
+            <div class="vf-label">Paperclip Subject ${paperclip !== 'N/A' ? `<button class="copy-btn" data-copy="${escapeHtml(paperclip)}">Copy</button>` : ''}</div>
+            <div class="vf-text">${escapeHtml(paperclip)}</div>
+          </div>
           <div class="verbiage-field">
-            <div class="vf-label">Note <button class="copy-btn" data-copy="${escapeHtml(vb.note)}">Copy</button></div>
-            <div class="vf-text">${escapeHtml(vb.note)}</div>
-          </div>` : ''}
-          ${vb.cancelComment ? `
+            <div class="vf-label">Note ${note !== 'N/A' ? `<button class="copy-btn" data-copy="${escapeHtml(note)}">Copy</button>` : ''}</div>
+            <div class="vf-text">${escapeHtml(note)}</div>
+          </div>
           <div class="verbiage-field">
-            <div class="vf-label">Cancel Comment ${vb.cancelReason ? ('— '+escapeHtml(vb.cancelReason)) : ''} <button class="copy-btn" data-copy="${escapeHtml(vb.cancelComment)}">Copy</button></div>
-            <div class="vf-text">${escapeHtml(vb.cancelComment)}</div>
-          </div>` : ''}
+            <div class="vf-label">Comment ${vb.cancelReason ? ('— '+escapeHtml(vb.cancelReason)) : ''} ${comment !== 'N/A' ? `<button class="copy-btn" data-copy="${escapeHtml(comment)}">Copy</button>` : ''}</div>
+            <div class="vf-text">${escapeHtml(comment)}</div>
+          </div>
         </div>
       </div>`;
     }
