@@ -487,12 +487,10 @@ function authIsOptum(s){
 }
 function fulfillIsOptum(s){
   s = norm(s);
-  if(!s.includes('optumrx') && !s.includes('optum rx')) return false;
-  // "OptumRx Specialty Pharmacy or Indemnified" / "...or Indemnified (Buy & Bill)" offers Indemnified
-  // (provider bills directly) as an alternative to OptumRx — that resolves to NOT at risk, not a
-  // confident OptumRx-supplies match, even though the text mentions OptumRx.
-  if(s.includes('indemnified') || s.includes('buy & bill') || s.includes('buy and bill')) return false;
-  return true;
+  // "OptumRx Specialty Pharmacy or Indemnified" / "...or Indemnified (Buy & Bill)" — OptumRx is
+  // listed as a fulfillment option, so OptumRx is at risk for supply. Only when Fulfillment is
+  // Indemnified alone (no OptumRx mentioned at all) is OptumRx not at risk for supply.
+  return s.includes('optumrx') || s.includes('optum rx');
 }
 
 // ---------- autocomplete ----------
