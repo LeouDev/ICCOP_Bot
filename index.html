@@ -683,6 +683,13 @@ function decide(facQuery, drugQuery, facRows, drugRows, nonCovRows){
     const authOk = authIsOptum(fr.authDelegation);
     const fulfillOk = fulfillIsOptum(fr.fulfillment);
     const isHumira = norm(dr.trade).includes('humira');
+    // Rady's: "authorized by Rady's ... Utilization Management ... and supplied by OptumRx" — the
+    // instructions settle a shared delegation in the group's favor for review.
+    if(authIsShared(fr.authDelegation) && fulfillOk && /authorized by (?!optum)/i.test(fr.instructions||'')){
+      return d('v-partial','!','OptumRx Not At Risk for Review — At Risk for Supply',
+        `${where} Per the group's instructions, the medical group authorizes (an authorization number from the requesting physician is sufficient); OptumRx supplies via ${escapeHtml(fr.fulfillment)}.`,
+        ['not_at_risk_supply_only'], {goldenRule, alsoNonCovered});
+    }
     if(authIsShared(fr.authDelegation)){
       return d('v-partial','!','Shared Delegation — Confirm Who Reviews',
         `${where} Auth Delegation is "${escapeHtml(fr.authDelegation)}", so review may sit with either side. Check the group's instructions before choosing the verbiage.`,
